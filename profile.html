@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Create Profile - HackMate</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="bg-gray-100">
+    <nav class="bg-white shadow-lg">
+      <div class="max-w-6xl mx-auto px-4">
+        <div class="flex justify-between items-center h-16">
+          <div class="flex items-center">
+            <a href="index.html" class="text-2xl font-bold text-indigo-600"
+              >HackMate</a
+            >
+          </div>
+          <div class="flex items-center space-x-4">
+            <a
+              href="find-teammates.html"
+              class="text-gray-600 hover:text-indigo-600"
+              >Find Teammates</a
+            >
+            <a href="messages.html" class="text-gray-600 hover:text-indigo-600"
+              >Messages</a
+            >
+            <button
+              id="logoutButton"
+              class="text-gray-600 hover:text-indigo-600"
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <main class="max-w-2xl mx-auto mt-10 p-6 bg-white rounded-lg shadow-md">
+      <h2 class="text-2xl font-bold text-center mb-6">Create Your Profile</h2>
+      <form id="profileForm" class="space-y-6">
+        <div>
+          <label for="name" class="block text-sm font-medium text-gray-700"
+            >Full Name</label
+          >
+          <input
+            type="text"
+            id="name"
+            name="name"
+            required
+            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+          />
+        </div>
+        <div>
+          <label for="location" class="block text-sm font-medium text-gray-700"
+            >Location</label
+          >
+          <input
+            type="text"
+            id="location"
+            name="location"
+            required
+            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Skills</label>
+          <div class="mt-2 space-y-2">
+            <label class="inline-flex items-center">
+              <input
+                type="checkbox"
+                name="skills"
+                value="JavaScript"
+                class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              />
+              <span class="ml-2">JavaScript</span>
+            </label>
+            <label class="inline-flex items-center">
+              <input
+                type="checkbox"
+                name="skills"
+                value="Python"
+                class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              />
+              <span class="ml-2">Python</span>
+            </label>
+            <label class="inline-flex items-center">
+              <input
+                type="checkbox"
+                name="skills"
+                value="React"
+                class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              />
+              <span class="ml-2">React</span>
+            </label>
+            <label class="inline-flex items-center">
+              <input
+                type="checkbox"
+                name="skills"
+                value="Node.js"
+                class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              />
+              <span class="ml-2">Node.js</span>
+            </label>
+            <label class="inline-flex items-center">
+              <input
+                type="checkbox"
+                name="skills"
+                value="UI/UX Design"
+                class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              />
+              <span class="ml-2">UI/UX Design</span>
+            </label>
+          </div>
+        </div>
+        <div>
+          <label for="interests" class="block text-sm font-medium text-gray-700"
+            >Interests</label
+          >
+          <textarea
+            id="interests"
+            name="interests"
+            rows="3"
+            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+          ></textarea>
+        </div>
+        <div>
+          <label for="hackathon" class="block text-sm font-medium text-gray-700"
+            >Hackathon</label
+          >
+          <select
+            id="hackathon"
+            name="hackathon"
+            required
+            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+          >
+            <option value="">Select a hackathon</option>
+            <option value="hackathon1">Hackathon 1</option>
+            <option value="hackathon2">Hackathon 2</option>
+            <option value="hackathon3">Hackathon 3</option>
+          </select>
+        </div>
+        <div>
+          <button
+            type="submit"
+            class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+          >
+            Save Profile
+          </button>
+        </div>
+      </form>
+    </main>
+
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js"></script>
+    <script src="js/firebase-config.js"></script>
+    <script src="js/auth.js"></script>
+    <script>
+      document
+        .getElementById("profileForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+
+          const user = auth.currentUser;
+          if (!user) {
+            alert("Please login first");
+            window.location.href = "login.html";
+            return;
+          }
+
+          const name = document.getElementById("name").value;
+          const location = document.getElementById("location").value;
+          const interests = document.getElementById("interests").value;
+          const hackathon = document.getElementById("hackathon").value;
+
+          const skills = Array.from(
+            document.querySelectorAll('input[name="skills"]:checked')
+          ).map((checkbox) => checkbox.value);
+
+          try {
+            await db.collection("profiles").doc(user.uid).set({
+              name,
+              location,
+              skills,
+              interests,
+              hackathon,
+              email: user.email,
+              createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            });
+
+            window.location.href = "find-teammates.html";
+          } catch (error) {
+            alert("Error saving profile: " + error.message);
+          }
+        });
+    </script>
+  </body>
+</html>

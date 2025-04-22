@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Messages - HackMate</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="bg-gray-100">
+    <nav class="bg-white shadow-lg">
+      <div class="max-w-6xl mx-auto px-4">
+        <div class="flex justify-between items-center h-16">
+          <div class="flex items-center">
+            <a href="index.html" class="text-2xl font-bold text-indigo-600"
+              >HackMate</a
+            >
+          </div>
+          <div class="flex items-center space-x-4">
+            <a href="profile.html" class="text-gray-600 hover:text-indigo-600"
+              >Profile</a
+            >
+            <a
+              href="find-teammates.html"
+              class="text-gray-600 hover:text-indigo-600"
+              >Find Teammates</a
+            >
+            <button
+              id="logoutButton"
+              class="text-gray-600 hover:text-indigo-600"
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <main class="max-w-6xl mx-auto mt-10 p-6">
+      <div class="bg-white rounded-lg shadow-md">
+        <div class="flex h-[600px]">
+          <!-- Conversations List -->
+          <div class="w-1/3 border-r border-gray-200">
+            <div class="p-4 border-b border-gray-200">
+              <h2 class="text-xl font-semibold">Conversations</h2>
+            </div>
+            <div id="conversations" class="overflow-y-auto h-[500px]">
+              <!-- Conversations will be populated here -->
+            </div>
+          </div>
+
+          <!-- Chat Area -->
+          <div class="w-2/3 flex flex-col">
+            <div id="chatHeader" class="p-4 border-b border-gray-200">
+              <h3 class="text-lg font-semibold">Select a conversation</h3>
+            </div>
+            <div id="messages" class="flex-1 overflow-y-auto p-4">
+              <!-- Messages will be populated here -->
+            </div>
+            <div class="p-4 border-t border-gray-200">
+              <form id="messageForm" class="flex space-x-2">
+                <input
+                  type="text"
+                  id="messageInput"
+                  placeholder="Type your message..."
+                  class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                />
+                <button
+                  type="submit"
+                  class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                >
+                  Send
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js"></script>
+    <script src="js/firebase-config.js"></script>
+    <script src="js/auth.js"></script>
+    <script>
+      const conversationsContainer = document.getElementById("conversations");
+      const messagesContainer = document.getElementById("messages");
+      const chatHeader = document.getElementById("chatHeader");
+      const messageForm = document.getElementById("messageForm");
+      const messageInput = document.getElementById("messageInput");
+      let currentChatId = null;
+
+      // Get URL parameters
+      const urlParams = new URLSearchParams(window.location.search);
+      const targetUserId = urlParams.get("userId");
+
+      function createConversationElement(conversation, profile) {
+        return `
+                <div class="p-4 border-b border-gray-200 hover:bg-gray-50 cursor-pointer"
+                    onclick="loadChat('${conversation.id}')">
+                    <h4 class="font-semibold">${profile.name}</h4>
+                    <p class="text-sm text-gray-600">${profile.location}</p>
+                </div>
+            `;
+      }
+
+      function createMessageElement(message, isCurrentUser) {
+        return `
+                <div class="mb-4 ${isCurrentUser ? "text-right" : "text-left"}">
+                    <div class="inline-block max-w-xs rounded-lg ${
+                      isCurrentUser
+                        ? "bg-indigo-600 text-white"
+                        : "bg-gray-200 text-gray-800"
+                    } p-3">
+                        ${message.text}
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">
+                        ${new Date(
+                          message.timestamp?.toDate()
+                        ).toLocaleString()}
+                    </p>
+                </div>
+            `;
+      }
+
+      async function loadConversations() {
+        const currentUser = auth.currentUser;
+        if (!currentUser) return;
+
+        try {
+          const conversationsSnapshot = await db
+            .collection("conversations")
+            .where("participants", "array-contains", currentUser.uid)
+            .get();
+
+          conversationsContainer.innerHTML = "";
+
+          for (const doc of conversationsSnapshot.docs) {
+            const conversation = doc.data();
+            const otherUserId = conversation.participants.find(
+              (id) => id !== currentUser.uid
+            );
+            const profileDoc = await db
+              .collection("profiles")
+              .doc(otherUserId)
+              .get();
+
+            if (profileDoc.exists) {
+              conversationsContainer.innerHTML += createConversationElement(
+                { id: doc.id, ...conversation },
+                profileDoc.data()
+              );
+            }
+          }
+
+          // If there's a target user ID, create or load that conversation
+          if (targetUserId) {
+            const existingConversation = conversationsSnapshot.docs.find(
+              (doc) => doc.data().participants.includes(targetUserId)
+            );
+
+            if (existingConversation) {
+              loadChat(existingConversation.id);
+            } else {
+              createNewChat(targetUserId);
+            }
+          }
+        } catch (error) {
+          console.error("Error loading conversations:", error);
+        }
+      }
+
+      async function createNewChat(targetUserId) {
+        const currentUser = auth.currentUser;
+        if (!currentUser) return;
+
+        try {
+          const conversationRef = await db.collection("conversations").add({
+            participants: [currentUser.uid, targetUserId],
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          });
+
+          loadChat(conversationRef.id);
+          loadConversations();
+        } catch (error) {
+          console.error("Error creating conversation:", error);
+        }
+      }
+
+      async function loadChat(chatId) {
+        currentChatId = chatId;
+        const currentUser = auth.currentUser;
+        if (!currentUser) return;
+
+        try {
+          const conversationDoc = await db
+            .collection("conversations")
+            .doc(chatId)
+            .get();
+          const conversation = conversationDoc.data();
+          const otherUserId = conversation.participants.find(
+            (id) => id !== currentUser.uid
+          );
+          const profileDoc = await db
+            .collection("profiles")
+            .doc(otherUserId)
+            .get();
+
+          if (profileDoc.exists) {
+            const profile = profileDoc.data();
+            chatHeader.innerHTML = `
+                        <h3 class="text-lg font-semibold">${profile.name}</h3>
+                        <p class="text-sm text-gray-600">${profile.location}</p>
+                    `;
+          }
+
+          const messagesSnapshot = await db
+            .collection("conversations")
+            .doc(chatId)
+            .collection("messages")
+            .orderBy("timestamp", "asc")
+            .get();
+
+          messagesContainer.innerHTML = "";
+          messagesSnapshot.forEach((doc) => {
+            const message = doc.data();
+            messagesContainer.innerHTML += createMessageElement(
+              message,
+              message.senderId === currentUser.uid
+            );
+          });
+
+          messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        } catch (error) {
+          console.error("Error loading chat:", error);
+        }
+      }
+
+      messageForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const currentUser = auth.currentUser;
+        if (!currentUser || !currentChatId) return;
+
+        const messageText = messageInput.value.trim();
+        if (!messageText) return;
+
+        try {
+          await db
+            .collection("conversations")
+            .doc(currentChatId)
+            .collection("messages")
+            .add({
+              text: messageText,
+              senderId: currentUser.uid,
+              timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+            });
+
+          messageInput.value = "";
+          loadChat(currentChatId);
+        } catch (error) {
+          console.error("Error sending message:", error);
+        }
+      });
+
+      // Load conversations on page load
+      document.addEventListener("DOMContentLoaded", loadConversations);
+    </script>
+  </body>
+</html>

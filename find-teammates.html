@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Find Teammates - HackMate</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="bg-gray-100">
+    <nav class="bg-white shadow-lg">
+      <div class="max-w-6xl mx-auto px-4">
+        <div class="flex justify-between items-center h-16">
+          <div class="flex items-center">
+            <a href="index.html" class="text-2xl font-bold text-indigo-600"
+              >HackMate</a
+            >
+          </div>
+          <div class="flex items-center space-x-4">
+            <a href="profile.html" class="text-gray-600 hover:text-indigo-600"
+              >Profile</a
+            >
+            <a href="messages.html" class="text-gray-600 hover:text-indigo-600"
+              >Messages</a
+            >
+            <button
+              id="logoutButton"
+              class="text-gray-600 hover:text-indigo-600"
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <main class="max-w-6xl mx-auto mt-10 p-6">
+      <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+        <h2 class="text-2xl font-bold mb-4">Find Teammates</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label
+              for="skillFilter"
+              class="block text-sm font-medium text-gray-700"
+              >Skills</label
+            >
+            <select
+              id="skillFilter"
+              multiple
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+            >
+              <option value="JavaScript">JavaScript</option>
+              <option value="Python">Python</option>
+              <option value="React">React</option>
+              <option value="Node.js">Node.js</option>
+              <option value="UI/UX Design">UI/UX Design</option>
+            </select>
+          </div>
+          <div>
+            <label
+              for="locationFilter"
+              class="block text-sm font-medium text-gray-700"
+              >Location</label
+            >
+            <input
+              type="text"
+              id="locationFilter"
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+            />
+          </div>
+          <div>
+            <label
+              for="hackathonFilter"
+              class="block text-sm font-medium text-gray-700"
+              >Hackathon</label
+            >
+            <select
+              id="hackathonFilter"
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+            >
+              <option value="">All Hackathons</option>
+              <option value="hackathon1">Hackathon 1</option>
+              <option value="hackathon2">Hackathon 2</option>
+              <option value="hackathon3">Hackathon 3</option>
+            </select>
+          </div>
+        </div>
+        <button
+          id="searchButton"
+          class="mt-4 bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+        >
+          Search
+        </button>
+      </div>
+
+      <div
+        id="results"
+        class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+      >
+        <!-- Results will be populated here -->
+      </div>
+    </main>
+
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js"></script>
+    <script src="js/firebase-config.js"></script>
+    <script src="js/auth.js"></script>
+    <script>
+      const resultsContainer = document.getElementById("results");
+      const searchButton = document.getElementById("searchButton");
+
+      function createProfileCard(profile) {
+        return `
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h3 class="text-xl font-semibold mb-2">${profile.name}</h3>
+                    <p class="text-gray-600 mb-2">${profile.location}</p>
+                    <div class="mb-2">
+                        <span class="font-medium">Skills:</span>
+                        <div class="flex flex-wrap gap-2 mt-1">
+                            ${profile.skills
+                              .map(
+                                (skill) => `
+                                <span class="bg-indigo-100 text-indigo-800 text-xs px-2 py-1 rounded">
+                                    ${skill}
+                                </span>
+                            `
+                              )
+                              .join("")}
+                        </div>
+                    </div>
+                    <p class="mb-2"><span class="font-medium">Interests:</span> ${
+                      profile.interests
+                    }</p>
+                    <p class="mb-4"><span class="font-medium">Hackathon:</span> ${
+                      profile.hackathon
+                    }</p>
+                    <button onclick="sendMessage('${profile.id}')"
+                        class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                        Send Message
+                    </button>
+                </div>
+            `;
+      }
+
+      async function searchTeammates() {
+        const skillFilter = Array.from(
+          document.getElementById("skillFilter").selectedOptions
+        ).map((option) => option.value);
+        const locationFilter = document.getElementById("locationFilter").value;
+        const hackathonFilter =
+          document.getElementById("hackathonFilter").value;
+
+        let query = db.collection("profiles");
+
+        if (skillFilter.length > 0) {
+          query = query.where("skills", "array-contains-any", skillFilter);
+        }
+
+        if (locationFilter) {
+          query = query.where("location", "==", locationFilter);
+        }
+
+        if (hackathonFilter) {
+          query = query.where("hackathon", "==", hackathonFilter);
+        }
+
+        try {
+          const snapshot = await query.get();
+          resultsContainer.innerHTML = "";
+
+          snapshot.forEach((doc) => {
+            const profile = { id: doc.id, ...doc.data() };
+            if (profile.id !== auth.currentUser.uid) {
+              resultsContainer.innerHTML += createProfileCard(profile);
+            }
+          });
+        } catch (error) {
+          console.error("Error searching profiles:", error);
+          alert("Error searching profiles: " + error.message);
+        }
+      }
+
+      function sendMessage(userId) {
+        window.location.href = `messages.html?userId=${userId}`;
+      }
+
+      searchButton.addEventListener("click", searchTeammates);
+
+      // Initial search on page load
+      document.addEventListener("DOMContentLoaded", searchTeammates);
+    </script>
+  </body>
+</html>

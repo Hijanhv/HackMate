@@ -1,0 +1,57 @@
+/* Custom styles */
+#skillFilter {
+  height: 150px;
+}
+
+#messages {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e0 #f7fafc;
+}
+
+#messages::-webkit-scrollbar {
+  width: 6px;
+}
+
+#messages::-webkit-scrollbar-track {
+  background: #f7fafc;
+}
+
+#messages::-webkit-scrollbar-thumb {
+  background-color: #cbd5e0;
+  border-radius: 3px;
+}
+
+#conversations {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e0 #f7fafc;
+}
+
+#conversations::-webkit-scrollbar {
+  width: 6px;
+}
+
+#conversations::-webkit-scrollbar-track {
+  background: #f7fafc;
+}
+
+#conversations::-webkit-scrollbar-thumb {
+  background-color: #cbd5e0;
+  border-radius: 3px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .flex.h-\[600px\] {
+    flex-direction: column;
+    height: auto;
+  }
+
+  .w-1\/3,
+  .w-2\/3 {
+    width: 100%;
+  }
+
+  #conversations {
+    height: 200px;
+  }
+}
